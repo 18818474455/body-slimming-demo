@@ -86,7 +86,6 @@ capacitor.config.json # Capacitor 配置
 
 - [Face Blemish Remover](https://github.com/18818474455/face-blemish-remover)
 - [Face Age & Gender Estimation](https://github.com/18818474455/face-age-gender-estimation)
-- [Human Skin-tone Pixel Detection](https://github.com/18818474455/human-skin-tone-detection)
 - [Liangzai](https://github.com/18818474455/liangzai) — 商业级跨平台影像处理 SDK 项目主页
 
 ## 许可证
