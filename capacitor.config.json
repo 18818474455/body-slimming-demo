@@ -1,0 +1,21 @@
+{
+  "appId": "com.bodyslim.app",
+  "appName": "人体瘦身",
+  "webDir": "docs",
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": [
+      "cdn.jsdelivr.net",
+      "*.jsdelivr.net",
+      "storage.googleapis.com",
+      "*.googleapis.com",
+      "tfhub.dev",
+      "*.tfhub.dev",
+      "kaggle.com",
+      "*.kaggle.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
+    <title>人体瘦身</title>
+    <meta name="description" content="基于 BodyPix 与 Canvas 位移场的浏览器端人像体型调整实验">
+    <meta name="theme-color" content="#6366f1">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>人体瘦身</h1>
+            <p class="subtitle">AI 人体定位 · 智能体型调整</p>
+        </header>
+
+        <div class="status-bar" id="statusBar">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">正在加载检测模型...</span>
+        </div>
+
+        <div class="usage-notice">
+            照片只在当前设备中处理，不会由本项目上传。此页面是算法实验，复杂姿态、遮挡或多人照片可能产生明显变形。
+        </div>
+
+        <!-- 上传区域 -->
+        <div class="card" id="uploadCard">
+            <div class="upload-area" id="uploadArea">
+                <svg class="upload-icon" viewBox="0 0 48 48" fill="none">
+                    <rect x="6" y="10" width="36" height="28" rx="4" stroke="currentColor" stroke-width="2.5"/>
+                    <circle cx="18" cy="22" r="4" stroke="currentColor" stroke-width="2"/>
+                    <path d="M6 32l10-8 6 5 8-10 12 13" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <p class="upload-text">点击选择或拍摄照片</p>
+                <p class="upload-hint">支持 JPG / PNG，建议包含清晰全身人像</p>
+            </div>
+            <input type="file" id="fileInput" accept="image/*" hidden>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnAlbum">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    相册选择
+                </button>
+                <button class="btn btn-secondary" id="btnCamera">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    拍摄照片
+                </button>
+            </div>
+        </div>
+
+        <!-- 图片预览 -->
+        <div class="card" id="previewCard" style="display:none">
+            <div class="card-top">
+                <h3>原始图片</h3>
+                <button class="btn-link" id="btnReselect">重新选择</button>
+            </div>
+            <div class="canvas-wrap">
+                <canvas id="originalCanvas"></canvas>
+            </div>
+            <button class="btn btn-accent btn-block" id="btnDetect" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                开始检测
+            </button>
+        </div>
+
+        <!-- 检测结果 -->
+        <div id="resultsArea" style="display:none">
+
+            <!-- 步骤1: 人脸检测 -->
+            <div class="card" id="faceDetectCard">
+                <div class="step-header">
+                    <span class="step-num face">1</span>
+                    <div>
+                        <h3>人脸检测</h3>
+                        <p class="step-desc">ML Kit 快速人脸检测 · 多人自动识别</p>
+                    </div>
+                </div>
+                <div class="canvas-wrap">
+                    <canvas id="faceCanvas"></canvas>
+                </div>
+                <div class="info-box" id="faceInfo"></div>
+            </div>
+
+            <!-- 步骤2: 人体关键点定位 -->
+            <div class="card">
+                <div class="step-header">
+                    <span class="step-num">2</span>
+                    <div>
+                        <h3>人体关键点定位</h3>
+                        <p class="step-desc">BodyPix 17 关键点 + 骨骼连接 + 包围盒</p>
+                    </div>
+                </div>
+                <div class="canvas-wrap">
+                    <canvas id="poseCanvas"></canvas>
+                </div>
+                <div class="info-box" id="poseInfo"></div>
+            </div>
+
+            <!-- 步骤3: 身体部位分割 -->
+            <div class="card">
+                <div class="step-header">
+                    <span class="step-num">3</span>
+                    <div>
+                        <h3>身体部位分割</h3>
+                        <p class="step-desc">24 个身体部位像素级分割 + 轮廓提取</p>
+                    </div>
+                </div>
+                <div class="canvas-wrap">
+                    <canvas id="partCanvas"></canvas>
+                </div>
+                <div class="info-box" id="partInfo"></div>
+            </div>
+
+            <!-- 步骤4: 瘦身区域权重 -->
+            <div class="card">
+                <div class="step-header">
+                    <span class="step-num">4</span>
+                    <div>
+                        <h3>瘦身区域权重</h3>
+                        <p class="step-desc">基于关键点的逐区域自适应瘦身强度</p>
+                    </div>
+                </div>
+                <div class="canvas-wrap">
+                    <canvas id="zoneCanvas"></canvas>
+                </div>
+                <div class="info-box" id="zoneInfo"></div>
+            </div>
+
+            <!-- 步骤5: 智能瘦身 -->
+            <div class="card" id="slimCard">
+                <div class="step-header">
+                    <span class="step-num">5</span>
+                    <div>
+                        <h3>智能瘦身</h3>
+                        <p class="step-desc">逐行扫描线变形 · 双线性插值 · 平滑位移场</p>
+                    </div>
+                </div>
+                <div class="slim-controls">
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>瘦身强度</span>
+                            <span class="slider-value" id="slimValue">30%</span>
+                        </div>
+                        <input type="range" class="slider" id="slimSlider" min="0" max="100" value="30">
+                    </div>
+                </div>
+                <div class="canvas-wrap slim-canvas-wrap">
+                    <div class="compare-toggle" id="compareToggle">
+                        <button class="compare-btn active" data-mode="after">瘦身后</button>
+                        <button class="compare-btn" data-mode="before">原图对比</button>
+                    </div>
+                    <canvas id="slimCanvas"></canvas>
+                </div>
+                <div class="info-box" id="slimInfo"></div>
+                <button class="btn btn-accent btn-block" id="btnSave">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    保存瘦身图片
+                </button>
+            </div>
+
+            <!-- 步骤6: 专项瘦腿 -->
+            <div class="card" id="legSlimCard">
+                <div class="step-header">
+                    <span class="step-num leg">6</span>
+                    <div>
+                        <h3>专项瘦腿</h3>
+                        <p class="step-desc">基于部位分割 · 左右腿独立收缩 · 精准不影响其他部位</p>
+                    </div>
+                </div>
+                <div class="slim-controls">
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>大腿强度</span>
+                            <span class="slider-value" id="thighValue">40%</span>
+                        </div>
+                        <input type="range" class="slider slider-leg" id="thighSlider" min="0" max="100" value="40">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>小腿强度</span>
+                            <span class="slider-value" id="calfValue">30%</span>
+                        </div>
+                        <input type="range" class="slider slider-leg" id="calfSlider" min="0" max="100" value="30">
+                    </div>
+                </div>
+                <div class="canvas-wrap slim-canvas-wrap">
+                    <div class="compare-toggle" id="legCompareToggle">
+                        <button class="compare-btn active" data-mode="after">瘦腿后</button>
+                        <button class="compare-btn" data-mode="before">原图对比</button>
+                    </div>
+                    <canvas id="legSlimCanvas"></canvas>
+                </div>
+                <div class="info-box" id="legSlimInfo"></div>
+                <button class="btn btn-accent btn-block" id="btnSaveLeg">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    保存瘦腿图片
+                </button>
+            </div>
+
+            <!-- 步骤7: 综合瘦身 -->
+            <div class="card" id="comboCard">
+                <div class="step-header">
+                    <span class="step-num combo">7</span>
+                    <div>
+                        <h3>综合瘦身</h3>
+                        <p class="step-desc">并联模式 · 瘦身/瘦臂/瘦腿/长腿独立调节 · 一次渲染合成</p>
+                    </div>
+                </div>
+                <div class="slim-controls">
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>上身强度</span>
+                            <span class="slider-value" id="comboBodyValue">30%</span>
+                        </div>
+                        <input type="range" class="slider slider-combo" id="comboBodySlider" min="0" max="100" value="30">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>手臂强度</span>
+                            <span class="slider-value" id="comboArmValue">30%</span>
+                        </div>
+                        <input type="range" class="slider slider-combo-arm" id="comboArmSlider" min="0" max="100" value="30">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>大腿强度</span>
+                            <span class="slider-value" id="comboThighValue">40%</span>
+                        </div>
+                        <input type="range" class="slider slider-combo-leg" id="comboThighSlider" min="0" max="100" value="40">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>小腿强度</span>
+                            <span class="slider-value" id="comboCalfValue">30%</span>
+                        </div>
+                        <input type="range" class="slider slider-combo-leg" id="comboCalfSlider" min="0" max="100" value="30">
+                    </div>
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>长腿拉伸</span>
+                            <span class="slider-value" id="comboLegValue">30%</span>
+                        </div>
+                        <input type="range" class="slider slider-combo-long" id="comboLegSlider" min="0" max="100" value="30">
+                    </div>
+                </div>
+                <div class="canvas-wrap slim-canvas-wrap">
+                    <div class="compare-toggle" id="comboCompareToggle">
+                        <button class="compare-btn active" data-mode="after">效果</button>
+                        <button class="compare-btn" data-mode="before">原图对比</button>
+                    </div>
+                    <canvas id="comboCanvas"></canvas>
+                </div>
+                <div class="info-box" id="comboInfo"></div>
+                <button class="btn btn-accent btn-block" id="btnSaveCombo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    保存综合瘦身图片
+                </button>
+            </div>
+        </div>
+
+        <!-- 加载遮罩 -->
+        <div class="overlay" id="overlay" style="display:none">
+            <div class="overlay-content">
+                <div class="spinner"></div>
+                <p id="overlayText">正在检测...</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

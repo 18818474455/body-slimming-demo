@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">storage.googleapis.com</domain>
+        <domain includeSubdomains="true">tfhub.dev</domain>
+        <domain includeSubdomains="true">cdn.jsdelivr.net</domain>
+        <domain includeSubdomains="true">kaggle.com</domain>
+    </domain-config>
+</network-security-config>
