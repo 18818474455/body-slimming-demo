@@ -3,6 +3,10 @@
 [![Live Demo](https://img.shields.io/badge/demo-GitHub%20Pages-6366f1)](https://18818474455.github.io/body-slimming-demo/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+<p align="center">
+  <img src="./assets/star-this-repo.gif" alt="喜欢这个项目吗？点击右上角 Star 支持一下">
+</p>
+
 一个完全在浏览器中运行的人像体型调整 Demo。项目使用 TensorFlow.js BodyPix 获得人体分割、身体部位和关键点，再使用 Canvas 位移场实现瘦身、瘦臂、瘦腿和长腿效果。
 
 > 这是可读、可改的算法实验，效果受姿态、服装、遮挡、背景和照片构图影响，不能替代商业修图引擎。
